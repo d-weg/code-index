@@ -63,6 +63,19 @@ npm run bench:e2e    # this table (executed end-to-end)
 npm run test:edit    # correctness + rollback
 ```
 
+**Confirmed live through the MCP tool.** With the edit layer exposed as an MCP
+server, two agents renamed `loadConfig` → `readConfig` across the repo — one calling
+`apply_edits`, one with grep + str_replace:
+
+| | apply_edits (MCP) | grep + str_replace |
+|---|---|---|
+| emitted | one directive (~19 tok) | 12 edits (~283 tok) |
+| files covered | 6, type-check-gated | 6 |
+
+**~15× fewer output tokens**, same files, and the MCP edit is verified by the gate
+before write (the manual edits aren't). The agent literally called the tool; the
+gate ran server-side.
+
 ### Whole feature, on a real external repo
 
 To stress it beyond codeindex's own source, a full feature was added to an

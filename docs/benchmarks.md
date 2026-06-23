@@ -144,6 +144,21 @@ the 16-reference-site count). Two honest notes:
 - This counts the **edit payloads**, not the agents' exploration/reasoning tokens
   (similar on both sides).
 
+**Confirmed through the MCP tool (`apply_edits`).** Re-ran as a live A/B with the
+edit layer exposed as an MCP server: two agents renamed `loadConfig` -> `readConfig`
+across codeindex, one calling `list_anchors` + `apply_edits`, one with grep +
+str_replace.
+
+| | apply_edits (MCP) | grep + str_replace |
+|---|---|---|
+| emitted | one directive, 77 chars (~19 tok) | 12 edits, 1,130 chars (~283 tok) |
+| files covered | 6 (gate-verified) | 6 |
+
+**~15× fewer output tokens**, both reaching the same 6 files — so the win isn't from
+doing less, and the MCP edit is type-checked before write (the manual edits aren't).
+This is the strongest version: the agent literally called the tool; the gate ran
+server-side.
+
 ### 3.3 Per-op detail — MODELED (`npm run bench:edit`, over codeindex's own source)
 
 RENAME (one directive, regardless of site count):
