@@ -185,11 +185,20 @@ model plugs in; the benchmark uses a deterministic stand-in.
 | rename / multi-site refactor | **large win** — O(N) edits → one directive |
 | whole-node / signature rewrite | win — body vs str_replace's old+new |
 | small in-body edit | **neutral-to-worse** — depends on uniqueness context (3.1) |
-| brand-new code / additions | **neutral at best** — the new code is emitted either way |
+| brand-new code / additions | **neutral on a clean first try**, but wins under a retry (below) |
 
 The input cost the protocol adds (nodeId anchors + spec) is small and
 prompt-cacheable; the savings that exist are on the output side, which is priced
 higher and latency-bound.
+
+**The retry caveat (matters for additions).** The rows above are for a *clean
+first attempt*. New code often fails the first type-check, and that flips it: the
+big emission already happened once, the gate catches the error, and scoped repair
+(§3.4) fixes only the bad span. So the retry costs ~the fix, not another whole
+function. Versus a baseline that re-emits the chunk to fix it, the protocol wins
+(the same 6× as §3.4); versus a baseline that already patches tightly, it's
+roughly neutral — but it never lets broken new code land. So "additions don't
+compensate" holds **only when there's no retry**.
 
 ---
 
@@ -206,9 +215,12 @@ tree is never touched):
    already had 25 pre-existing) confirmed the new code **type-checks against the
    repo's real types**.
 
-**Honest finding:** for an addition the protocol emits *more* output than a plain
-edit (115 vs 76 tok — you write the new code either way, plus op headers). The value
-for additions is the **type-check gate**, not tokens.
+**Honest finding:** on a *clean first try* the protocol emits *more* output than a
+plain edit (115 vs 76 tok — you write the new code either way, plus op headers).
+But that only holds with no retry: when the new code fails the type-check (common),
+the gate catches it and scoped repair (§3.4) fixes just the bad span, so the retry
+is a cheap patch instead of re-emitting the function. So for additions the value is
+the **type-check gate plus a cheap retry**, not first-try token count.
 
 ---
 

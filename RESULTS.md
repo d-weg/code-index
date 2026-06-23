@@ -76,9 +76,12 @@ To stress it beyond codeindex's own source, a full feature was added to an
    repo already had 25 pre-existing) confirmed the new code **type-checks against
    the repo's real types**.
 
-Honest finding: for an **addition**, the protocol emits *more* output than a plain
-edit (you write the new code either way, plus op headers). The value for additions
-is the **type-check gate**, not tokens — output savings are a refactor phenomenon.
+Honest finding: on a **clean first try**, an addition emits *more* output than a
+plain edit (you write the new code either way, plus op headers). That only holds
+with no retry — when new code fails the type-check (common), the gate catches it
+and scoped repair patches just the bad span, so the retry is cheap instead of a
+re-emit. So additions "don't compensate" *only when there's no retry*; the value is
+the gate plus a cheap retry. Pure first-try output savings stay a refactor thing.
 
 ```bash
 npm run bench:feature
