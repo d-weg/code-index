@@ -39,7 +39,13 @@ embedding por consulta, sem API.
 agente emite operações estruturais (`RENAME` / `SET_BODY` / `REPLACE_TEXT` /
 `INSERT_BEFORE`) contra âncoras da AST. Um runner em ts-morph aplica elas atrás de um
 **gate de type-check**: nada entra se não compilar, e falhas dão rollback (ou reparo
-escopado).
+escopado). E ops de arquivo: `MOVE_FILE` move um arquivo e reescreve todos os imports
+que apontam pra ele, no repo inteiro.
+
+**Entender a estrutura** — um mapa de arquitetura zero-API (`describe_architecture` /
+`npm run arch`): padrões de tipo de arquivo por pasta, docs co-localizados e templates
+de módulo detectados (ex.: *"`features/` tem sub-módulos, cada um com `*.service.ts` +
+`*.controller.ts` + `index.ts`"*) — pro agente saber onde um novo módulo vai.
 
 ## Números (nos meus próprios repos — baselines honestos)
 

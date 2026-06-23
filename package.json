@@ -14,6 +14,7 @@
     "update": "tsx src/index.ts --update",
     "retrieve": "tsx src/retrieve.ts",
     "mcp": "tsx src/mcp.ts",
+    "arch": "tsx scripts/architecture.ts",
     "benchmark": "tsx scripts/benchmark.ts",
     "eval": "tsx scripts/eval.ts",
     "test": "tsx scripts/test-package-weight.ts",

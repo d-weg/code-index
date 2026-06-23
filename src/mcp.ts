@@ -13,6 +13,7 @@ import { renderSummary } from "./retrieve.js";
 import { makeRetrieveContextHandler, RETRIEVE_CONTEXT_TOOL } from "./tool.js";
 import { commit, parseOps } from "./edit/index.js";
 import { indexSourceFile } from "./edit/nodeId.js";
+import { buildArchitecture, formatArchitecture } from "./folders.js";
 
 function resolveRoot(): string {
   const argv = process.argv.slice(2);
@@ -127,6 +128,28 @@ async function main() {
     },
   );
 
+  // ── CONTEXT: describe_architecture ─────────────────────────────────────────
+  server.registerTool(
+    "describe_architecture",
+    {
+      title: "Describe Architecture",
+      description:
+        "Folder/architecture map of the repo (zero-API, from structure + co-located docs): " +
+        "per-directory file-kind patterns, co-located README/AGENTS/CLAUDE docs, and detected " +
+        "module templates (e.g. 'features/ holds sub-modules, each with *.service.ts + " +
+        "*.controller.ts + index.ts'). Call this to decide WHERE a new file/module should go and " +
+        "what shape it takes before CREATE_FILE. Optional `path` scopes to a subtree.",
+      inputSchema: { path: z.string().optional().describe("Scope to a subdirectory (repo-relative).") },
+    },
+    async ({ path: sub }) => {
+      try {
+        return text(formatArchitecture(await buildArchitecture(root), sub));
+      } catch (e) {
+        return err(`describe_architecture failed: ${e instanceof Error ? e.message : e}`);
+      }
+    },
+  );
+
   // ── OUTPUT: apply_edits ────────────────────────────────────────────────────
   server.registerTool(
     "apply_edits",
@@ -169,7 +192,9 @@ async function main() {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error(`[codeindex-mcp] retrieve_context + apply_edits + list_anchors for ${root}`);
+  console.error(
+    `[codeindex-mcp] retrieve_context + describe_architecture + list_anchors + apply_edits for ${root}`,
+  );
 }
 
 main().catch((e) => {

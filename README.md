@@ -36,6 +36,12 @@ is actually about). Runs fully in-process — one embedding per query, no API.
 agent emits structural ops (`RENAME` / `SET_BODY` / `REPLACE_TEXT` / `INSERT_BEFORE`)
 against AST anchors. A ts-morph runner applies them behind a **type-check gate**:
 nothing lands unless it still compiles, and failures roll back (or scoped-repair).
+File-level ops too: `MOVE_FILE` moves a file and rewrites every importer repo-wide.
+
+**Understand structure** — a zero-API architecture map (`describe_architecture` /
+`npm run arch`): per-folder file-kind patterns, co-located docs, and detected module
+templates (e.g. *"`features/` holds sub-modules, each with `*.service.ts` +
+`*.controller.ts` + `index.ts`"*) — so an agent knows where a new module goes.
 
 ## Numbers (on my own repos — honest baselines)
 
