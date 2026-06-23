@@ -1,5 +1,8 @@
 # AST-Anchored Edit Operations — Design & Findings
 
+> 🇧🇷 Documento de design em inglês. Visão geral em português:
+> [../README.pt-BR.md](../README.pt-BR.md) · resultados: [../RESULTS.pt-BR.md](../RESULTS.pt-BR.md).
+
 Status: prototype complete and verified end-to-end (`npm run demo`, `npm run bench`,
 `npm run typecheck` all green). This document is the durable record of the
 architecture, the protocol, every claim we verified empirically, and the

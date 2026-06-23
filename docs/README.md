@@ -1,5 +1,8 @@
 # codeindex docs
 
+> 🇧🇷 Estes documentos estão em inglês. Em português:
+> [../README.pt-BR.md](../README.pt-BR.md) · [../RESULTS.pt-BR.md](../RESULTS.pt-BR.md).
+
 | Doc | Covers |
 |---|---|
 | [../ARCHITECTURE.md](../ARCHITECTURE.md) | Core retrieval pipeline: symbols, import graph, embeddings, BM25, RRF, graph expansion, incremental update. |

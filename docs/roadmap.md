@@ -1,5 +1,8 @@
 # codeindex — analysis & improvement plan
 
+> 🇧🇷 Documento em inglês (notas internas). Visão geral em português:
+> [../README.pt-BR.md](../README.pt-BR.md).
+
 Grounded review of the current implementation, with a staged plan. Findings cite
 `file:line`. Effort = S/M/L, Impact = H/M/L.
 

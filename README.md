@@ -1,5 +1,7 @@
 # codeindex
 
+**English** · [Português](README.pt-BR.md)
+
 **Local, zero-API code retrieval + AST-anchored edits for coding agents — TypeScript-native.**
 Give it a task string, get back the exact files and line-ranges that matter (no
 API calls on the query path). Then let an agent change code by emitting structural
@@ -14,36 +16,6 @@ ops against AST anchors that only land if they still type-check.
 > **Built with heavy AI assistance (Claude Code).** The idea, direction, and
 > decisions are mine; a lot of the implementation and all the benchmark harnesses
 > were written with Claude. Treat the code as reviewed-but-AI-generated.
-
-<details>
-<summary><b>🇧🇷 Português (intro)</b></summary>
-
-**Busca de código local e zero-API + edições ancoradas na AST para agentes de
-código — nativo em TypeScript.** Você passa uma descrição da tarefa e recebe de
-volta exatamente os arquivos e os intervalos de linha que importam (sem chamadas de
-API no caminho da consulta). Depois, um agente altera o código emitindo operações
-estruturais contra âncoras da AST, que só entram se ainda passarem no type-check.
-
-> [!NOTE]
-> **Isto é um estudo de caso, não um produto.** Um experimento de fim de semana pra
-> ver se indexar a base bate o agente rodando grep sem parar. Funciona e os números
-> são reais, mas espere arestas — não há roadmap, suporte nem compromisso de
-> estabilidade. Pode mudar e melhorar; ou não.
->
-> **Feito com bastante ajuda de IA (Claude Code).** A ideia, a direção e as decisões
-> são minhas; boa parte da implementação e todos os benchmarks foram escritos com o
-> Claude. Trate o código como revisado-mas-gerado-por-IA.
-
-**Por quê.** Agentes queimam um monte de token rodando grep sem parar e criando
-scripts descartáveis só pra *achar* o código que precisam mexer — e depois
-re-emitem diffs grandes pra *alterá-lo*. Eu quis ver até onde um índice local
-decente + edições conscientes da AST cortariam isso. Trabalho principalmente com
-Node/TS, então aproveitei o próprio ferramental do TypeScript, e sou acostumado com
-monorepos, onde um pacote compartilhado importado em todo lugar pode detonar a
-relevância semântica. Os números, a metodologia e **onde ele perde** estão em
-[docs/benchmarks.md](docs/benchmarks.md).
-
-</details>
 
 ## Why
 

@@ -1,5 +1,8 @@
 # codeindex — Architecture & How It Works
 
+> 🇧🇷 Este documento está em inglês. Visão geral em português:
+> [README.pt-BR.md](README.pt-BR.md) · resultados: [RESULTS.pt-BR.md](RESULTS.pt-BR.md).
+
 A local, **zero-API-token** code-retrieval system. Given a task string (`"add rate
 limiting to the upload route"`) it returns a compact **context manifest** — the relevant
 files, the specific symbol line-ranges to read, and how each file relates to the task —

@@ -1,8 +1,10 @@
 # Results — token savings
 
+**English** · [Português](RESULTS.pt-BR.md)
+
 `codeindex` cuts the tokens an agent spends on a code task in two places: the
 **input** it reads to find context, and the **output** it emits to make the change.
-Every number below is from real runs on a real repo (`the test repo`). Token = chars/4;
+Every number below is from real runs on real repos. Token = chars/4;
 the **% reduction is divisor-independent**, so it holds under any tokenizer.
 
 Two baselines are shown throughout, on purpose — a conservative floor and a
@@ -30,7 +32,7 @@ runs, 3 real tasks:
   included in the WITH column.
 
 ```bash
-npm run benchmark -- ~/the test repo "deduct a credit atomically when a shop unlocks a repair lead"
+npm run benchmark -- /path/to/repo "deduct a credit atomically when a shop unlocks a repair lead"
 ```
 
 ---

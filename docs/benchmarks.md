@@ -1,5 +1,8 @@
 # Benchmarks
 
+> 🇧🇷 Este documento está em inglês. Resumo dos resultados em português:
+> [../RESULTS.pt-BR.md](../RESULTS.pt-BR.md).
+
 codeindex cuts the tokens an agent spends on a code task in two places: the
 **input** it reads to find context, and the **output** it emits to make the change.
 Everything here is from real runs on real repos.
