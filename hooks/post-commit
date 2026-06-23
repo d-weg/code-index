@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# codeindex: incremental, async, non-blocking reindex of the just-committed TS/TSX files.
+# Installed by `npm run install-hooks`. Never does a full rebuild here.
+
+# Files changed in this commit, filtered to TS/TSX.
+changed="$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E '\.(ts|tsx)$' || true)"
+
+# Also pick up changed docs if you index them (optional; comment out to skip).
+changed_docs="$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E '\.(md|mdx)$' || true)"
+
+all="$(printf '%s\n%s\n' "$changed" "$changed_docs" | sed '/^$/d')"
+[ -z "$all" ] && exit 0
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+# Run detached so the commit returns immediately. Logs to .codeindex/update.log.
+(
+  cd "$repo_root" || exit 0
+  mkdir -p .codeindex
+  # shellcheck disable=SC2086
+  npx tsx "$repo_root/src/index.ts" --update $all >> .codeindex/update.log 2>&1
+) >/dev/null 2>&1 &
+
+disown 2>/dev/null || true
+exit 0

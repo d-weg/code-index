@@ -1,0 +1,7 @@
+node_modules/
+.codeindex/
+*.log
+.DS_Store
+
+scripts/bench-embedder/.data/
+.models/

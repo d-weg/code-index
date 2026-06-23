@@ -1,0 +1,43 @@
+{
+  "name": "codeindex",
+  "version": "0.1.0",
+  "description": "Local zero-API-token code retrieval: precomputed static index -> context manifest. No LLM/API calls on the query path.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "codeindex": "./src/index.ts",
+    "codeindex-retrieve": "./src/retrieve.ts",
+    "codeindex-mcp": "./src/mcp.ts"
+  },
+  "scripts": {
+    "index": "tsx src/index.ts",
+    "update": "tsx src/index.ts --update",
+    "retrieve": "tsx src/retrieve.ts",
+    "mcp": "tsx src/mcp.ts",
+    "benchmark": "tsx scripts/benchmark.ts",
+    "eval": "tsx scripts/eval.ts",
+    "test": "tsx scripts/test-package-weight.ts",
+    "test:edit": "tsx scripts/edit-selftest.ts",
+    "bench:edit": "tsx scripts/bench-edit.ts",
+    "bench:e2e": "tsx scripts/bench-e2e.ts",
+    "bench:feature": "tsx scripts/bench-feature.ts",
+    "bench:retry": "tsx scripts/bench-retry.ts",
+    "bench:embedder": "tsx scripts/bench-embedder/run-bge.ts && python3 scripts/bench-embedder/run-potion.py && tsx scripts/bench-embedder/report.ts",
+    "test:parity": "tsx scripts/bench-embedder/parity-check.ts",
+    "install-hooks": "tsx scripts/install-hooks.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@xenova/transformers": "^2.17.2",
+    "fast-glob": "^3.3.2",
+    "ignore": "^5.3.1",
+    "ts-morph": "^23.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
+  }
+}

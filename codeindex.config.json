@@ -1,0 +1,17 @@
+{
+  "embeddingModel": "Xenova/bge-small-en-v1.5",
+  "topN": 8,
+  "graphHops": 2,
+  "maxExpand": 10,
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/*.d.ts", "**/.codeindex/**"],
+  "languages": ["ts", "tsx"],
+  "indexDocs": true,
+  "docGlobs": ["**/*.md", "**/*.mdx"],
+  "adjacencyBonus": 0.4,
+  "rrfK": 60,
+  "indexDir": ".codeindex",
+  "queryEmbedPrefix": "Represent this sentence for searching relevant code: ",
+  "queryLayerWeighting": { "enabled": true, "boost": 0.6 },
+  "packageWeights": {}
+}
