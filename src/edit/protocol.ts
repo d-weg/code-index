@@ -17,8 +17,12 @@ import { AgentOp, ParseError } from "./types.js";
 
 const EDIT = "STRUCTURAL_EDIT:";
 const REFACTOR = "CRITICAL_REFACTOR:";
+const MOVE_FILE = "MOVE_FILE:";
+const DELETE_FILE = "DELETE_FILE:";
+const CREATE_FILE = "CREATE_FILE:";
 
-const isBoundary = (t: string) => t.startsWith(EDIT) || t.startsWith(REFACTOR);
+const BOUNDARIES = [EDIT, REFACTOR, MOVE_FILE, DELETE_FILE, CREATE_FILE];
+const isBoundary = (t: string) => BOUNDARIES.some((k) => t.startsWith(k));
 const after = (t: string, k: string) => t.slice(k.length).trim();
 
 export function parseOps(stream: string): AgentOp[] {
@@ -32,6 +36,32 @@ export function parseOps(stream: string): AgentOp[] {
     if (t.startsWith(REFACTOR)) {
       ops.push(parseRefactor(after(t, REFACTOR), i));
       i++;
+      continue;
+    }
+
+    if (t.startsWith(MOVE_FILE)) {
+      const m = /^(\S+)\s+TO\s+(\S+)$/.exec(after(t, MOVE_FILE));
+      if (!m) throw new ParseError(`Line ${i + 1}: malformed MOVE_FILE "${t}"`);
+      ops.push({ type: "MOVE_FILE", from: m[1], to: m[2] });
+      i++;
+      continue;
+    }
+
+    if (t.startsWith(DELETE_FILE)) {
+      const p = after(t, DELETE_FILE);
+      if (!p) throw new ParseError(`Line ${i + 1}: DELETE_FILE missing path`);
+      ops.push({ type: "DELETE_FILE", path: p });
+      i++;
+      continue;
+    }
+
+    if (t.startsWith(CREATE_FILE)) {
+      const p = after(t, CREATE_FILE);
+      if (!p) throw new ParseError(`Line ${i + 1}: CREATE_FILE missing path`);
+      i = expectHeader(lines, i + 1, "CODE:", p);
+      const { text: code, next } = readPayload(lines, i, isBoundary);
+      i = next;
+      ops.push({ type: "CREATE_FILE", path: p, code });
       continue;
     }
 

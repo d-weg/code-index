@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Diagnostic, Node, Project, SourceFile, SyntaxKind } from "ts-morph";
 import {
   AgentOp,
@@ -5,8 +6,11 @@ import {
   AnchoredDiagnostic,
   CollisionError,
   CommitResult,
+  CreateFileOp,
+  DeleteFileOp,
   GuardError,
   InsertBeforeOp,
+  MoveFileOp,
   RenameOp,
   RepairFn,
   ReplaceNodeOp,
@@ -23,6 +27,8 @@ export interface RunnerOptions {
    * lazy/partial project makes rename silently corrupt the codebase. Verified.
    */
   fullProjectLoaded?: boolean;
+  /** Repo root for resolving relative file-op paths (MOVE_FILE/CREATE_FILE/...). */
+  rootDir?: string;
 }
 
 /** Operates on a FULL, persistent ts-morph Project — never on isolated chunks. */
@@ -114,6 +120,32 @@ export class RefactorRunner {
     decl.rename(op.newName);
   }
 
+  private absPath(p: string): string {
+    if (path.isAbsolute(p)) return p;
+    if (!this.opts.rootDir) throw new GuardError(p, "file ops need rootDir to resolve relative paths");
+    return path.join(this.opts.rootDir, p);
+  }
+
+  /** Move/rename a file — ts-morph rewrites every import specifier referencing it. */
+  applyMoveFile(op: MoveFileOp): void {
+    const sf = this.findSourceFile(op.from);
+    if (!sf) throw new AnchorError(`MOVE_FILE source not found: ${op.from}`);
+    sf.move(this.absPath(op.to));
+  }
+
+  applyCreateFile(op: CreateFileOp): void {
+    const abs = this.absPath(op.path);
+    if (this.project.getSourceFile(abs) || this.findSourceFile(op.path))
+      throw new GuardError(op.path, "CREATE_FILE: a file at that path already exists");
+    this.project.createSourceFile(abs, op.code);
+  }
+
+  applyDeleteFile(op: DeleteFileOp): void {
+    const sf = this.findSourceFile(op.path);
+    if (!sf) throw new AnchorError(`DELETE_FILE not found: ${op.path}`);
+    sf.delete(); // gate rejects if anything still imports it
+  }
+
   apply(op: AgentOp): void {
     switch (op.type) {
       case "SET_BODY":
@@ -126,6 +158,12 @@ export class RefactorRunner {
         return this.applyInsertBefore(op);
       case "RENAME":
         return this.applyRename(op);
+      case "MOVE_FILE":
+        return this.applyMoveFile(op);
+      case "CREATE_FILE":
+        return this.applyCreateFile(op);
+      case "DELETE_FILE":
+        return this.applyDeleteFile(op);
     }
   }
 }
@@ -168,10 +206,12 @@ function anchorDiagnostic(
   const start = d.getStart();
   if (!sf || start == null) return base;
   for (let i = 0; i < ops.length; i++) {
+    const op = ops[i];
+    if (!("nodeId" in op)) continue; // file ops have no node anchor
     try {
-      const node = runner.resolve(ops[i].nodeId);
+      const node = runner.resolve(op.nodeId);
       if (node.getSourceFile() === sf && start >= node.getStart() && start <= node.getEnd()) {
-        return { ...base, nodeId: ops[i].nodeId, opIndex: i };
+        return { ...base, nodeId: op.nodeId, opIndex: i };
       }
     } catch {
       /* op may not resolve (e.g. after rename) — skip attribution */
@@ -194,6 +234,7 @@ export async function commit(
   {
     write = true,
     fullProjectLoaded = false,
+    rootDir,
     baselineDiff = false,
     repair,
     maxRepairRounds = 2,
@@ -205,16 +246,30 @@ export async function commit(
     maxRepairRounds?: number;
   } & RunnerOptions = {},
 ): Promise<CommitResult> {
-  const runner = new RefactorRunner(project, { fullProjectLoaded });
+  const runner = new RefactorRunner(project, { fullProjectLoaded, rootDir });
 
   // Baseline needed for "newly introduced" detection (always, when repairing).
   const baseline =
     baselineDiff || repair ? new Set(gateDiagnostics(project).map(diagKey)) : null;
 
-  const snapshot = new Map<SourceFile, string>();
-  for (const sf of project.getSourceFiles()) snapshot.set(sf, sf.getFullText());
+  // Path-keyed snapshot so rollback survives file ops (move/delete/create), where
+  // SourceFile nodes get forgotten or repathed.
+  const snapshot = new Map<string, string>();
+  for (const sf of project.getSourceFiles()) snapshot.set(sf.getFilePath(), sf.getFullText());
   const rollback = () => {
-    for (const [sf, text] of snapshot) if (sf.getFullText() !== text) sf.replaceWithText(text);
+    // Drop anything created/moved-to since the snapshot.
+    for (const sf of [...project.getSourceFiles()]) {
+      if (!snapshot.has(sf.getFilePath())) sf.delete();
+    }
+    // Restore originals: re-create moved/deleted files, fix edited ones.
+    for (const [p, text] of snapshot) {
+      const existing = project.getSourceFile(p);
+      if (existing) {
+        if (existing.getFullText() !== text) existing.replaceWithText(text);
+      } else {
+        project.createSourceFile(p, text, { overwrite: true });
+      }
+    }
   };
 
   for (let i = 0; i < ops.length; i++) {
@@ -255,9 +310,15 @@ export async function commit(
     return { ok: false, failedOpIndex: -1, feedback };
   }
 
-  const changedFiles = [...snapshot.entries()]
-    .filter(([sf, text]) => sf.getFullText() !== text)
-    .map(([sf]) => sf.getFilePath());
+  // changedFiles = edited + created/moved-to + deleted/moved-from.
+  const now = new Map<string, string>(
+    project.getSourceFiles().map((sf) => [sf.getFilePath() as string, sf.getFullText()]),
+  );
+  const changedFiles: string[] = [];
+  for (const [p, text] of snapshot) {
+    if (!now.has(p) || now.get(p) !== text) changedFiles.push(p);
+  }
+  for (const p of now.keys()) if (!snapshot.has(p)) changedFiles.push(p);
 
   if (write) await project.save();
   return { ok: true, appliedOps: ops.length, changedFiles, repairRounds };

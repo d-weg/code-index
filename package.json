@@ -22,6 +22,7 @@
     "bench:e2e": "tsx scripts/bench-e2e.ts",
     "bench:feature": "tsx scripts/bench-feature.ts",
     "bench:retry": "tsx scripts/bench-retry.ts",
+    "bench:movefile": "tsx scripts/bench-movefile.ts",
     "bench:embedder": "tsx scripts/bench-embedder/run-bge.ts && python3 scripts/bench-embedder/run-potion.py && tsx scripts/bench-embedder/report.ts",
     "test:parity": "tsx scripts/bench-embedder/parity-check.ts",
     "install-hooks": "tsx scripts/install-hooks.ts",

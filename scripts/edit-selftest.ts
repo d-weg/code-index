@@ -123,6 +123,28 @@ return p.userId;`),
   check("bad edit rejected by diagnostics gate + rolled back", !res.ok && before === after);
 }
 
+// E. MOVE_FILE moves the file and rewrites the importer's specifier.
+{
+  const project = makeProject();
+  const res = await commit(
+    project,
+    parseOps(`MOVE_FILE: src/auth/payload.ts TO src/auth/core/payload.ts`),
+    { write: false, rootDir: "/" },
+  );
+  const svc = project.getSourceFileOrThrow("src/auth/service.ts").getFullText();
+  check("MOVE_FILE moves file + rewrites importer", res.ok && svc.includes("./core/payload"));
+}
+
+// F. DELETE_FILE rejected by the gate when the file is still imported.
+{
+  const project = makeProject();
+  const res = await commit(project, parseOps(`DELETE_FILE: src/auth/payload.ts`), {
+    write: false,
+    rootDir: "/",
+  });
+  check("DELETE_FILE refused while still imported", !res.ok);
+}
+
 console.log(line);
 console.log(failures === 0 ? "all edit self-tests passed" : `${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

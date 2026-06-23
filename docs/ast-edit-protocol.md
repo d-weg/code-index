@@ -122,6 +122,23 @@ conversational prose around blocks, and exact preservation of code indentation.
   <new span>
   ```
 
+**File-level ops** (repo-relative paths; need `rootDir` to resolve):
+- `MOVE_FILE: <from> TO <to>` → `sourceFile.move()` — moves the file AND rewrites
+  every import specifier that references it, repo-wide. The file analog of RENAME:
+  one directive vs editing N importers. Measured **18× fewer output tokens** moving
+  a file imported by 8 (one line vs 8 str_replace edits), and it grows with importer
+  count (`npm run bench:movefile`).
+- `DELETE_FILE: <path>` → `sourceFile.delete()` — the gate rejects if anything still
+  imports it.
+- `CREATE_FILE: <path>` + `CODE:` → `project.createSourceFile()` — gate-verified;
+  like other additions, neutral on tokens, value is the type-check.
+
+> **Caveat — module-specifier style.** `MOVE_FILE` rewrites specifiers using the
+> project's style, derived from `moduleResolution`. Under `bundler` it *drops* the
+> `.js` extension (`"./a.js"` → `"./a"`) — correct for bundler/tsx runtimes, but if
+> you run strict Node ESM with bundler resolution, verify the result. Use
+> `NodeNext`/`Node16` resolution and ts-morph preserves the extension.
+
 ---
 
 ## 5. Execution lifecycle  (`src/runner.ts`)

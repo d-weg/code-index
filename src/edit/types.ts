@@ -45,7 +45,35 @@ export interface RenameOp {
   newName: string;
 }
 
-export type AgentOp = SetBodyOp | ReplaceNodeOp | ReplaceTextOp | InsertBeforeOp | RenameOp;
+/** Move/rename a file; ts-morph rewrites every import specifier referencing it. */
+export interface MoveFileOp {
+  type: "MOVE_FILE";
+  from: string;
+  to: string;
+}
+
+/** Create a new file with the given source. */
+export interface CreateFileOp {
+  type: "CREATE_FILE";
+  path: string;
+  code: string;
+}
+
+/** Delete a file (the gate rejects if anything still imports it). */
+export interface DeleteFileOp {
+  type: "DELETE_FILE";
+  path: string;
+}
+
+export type AgentOp =
+  | SetBodyOp
+  | ReplaceNodeOp
+  | ReplaceTextOp
+  | InsertBeforeOp
+  | RenameOp
+  | MoveFileOp
+  | CreateFileOp
+  | DeleteFileOp;
 
 // ── Results ──────────────────────────────────────────────────────────────────
 

@@ -47,13 +47,23 @@ Provide \`ops\` as one or more blocks:
   NEW:
   <replacement>
 
+File-level ops (repo-relative paths):
+
+  MOVE_FILE: <oldPath> TO <newPath>
+    Moves/renames a file AND rewrites every import that references it, repo-wide.
+  DELETE_FILE: <path>
+    Deletes a file (rejected if anything still imports it).
+  CREATE_FILE: <path>
+  CODE:
+  <full file source>
+
 nodeId = relativePath#<prefix>_<name>; prefixes: fn_ cls_ iface_ enum_ type_ var_,
 and meth_Class.method. Call list_anchors first to get exact nodeIds.
 SET_BODY = body only (signature kept); REPLACE_NODE = whole declaration (signature
 changes); REPLACE_TEXT = small localized edit; INSERT_BEFORE = new declaration;
-RENAME = cross-file rename. Pass \`tsconfig\` (the package's tsconfig, e.g.
-apps/backend/tsconfig.json) in a monorepo; defaults to tsconfig.json at the root.
-Set \`dryRun\` to validate without writing.`;
+RENAME = cross-file rename; MOVE_FILE = move a file + fix all importers. Pass
+\`tsconfig\` (the package's tsconfig, e.g. apps/backend/tsconfig.json) in a monorepo;
+defaults to tsconfig.json at the root. Set \`dryRun\` to validate without writing.`;
 
 async function main() {
   const root = resolveRoot();
@@ -138,6 +148,7 @@ async function main() {
           write: !dryRun,
           fullProjectLoaded: true, // loaded from tsconfig => full graph, safe for RENAME
           baselineDiff: true, // only fail on NEWLY introduced type errors
+          rootDir: root, // resolve relative MOVE_FILE/CREATE_FILE/DELETE_FILE paths
         });
         if (res.ok) {
           return text(
