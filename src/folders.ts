@@ -6,6 +6,10 @@
 import fg from "fast-glob";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { isIgnored, loadGitignore } from "./util.js";
+
+/** Safety cap: a real project tree, not someone's whole home directory. */
+const MAX_ARCH_FILES = 20000;
 
 export interface ArchNode {
   dir: string; // relative to root ("" = repo root)
@@ -29,10 +33,21 @@ function fileSuffix(name: string): string {
 }
 
 export async function buildArchitecture(root: string): Promise<ArchNode[]> {
-  const files = await fg(["**/*.ts", "**/*.tsx"], {
+  const ig = await loadGitignore(root);
+  const globbed = await fg(["**/*.ts", "**/*.tsx"], {
     cwd: root,
-    ignore: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/*.d.ts", "**/.codeindex/**"],
+    ignore: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/*.d.ts", "**/.codeindex/**", "**/.git/**"],
+    followSymbolicLinks: false,
+    suppressErrors: true,
+    deep: 12,
   });
+  const files = globbed.filter((f) => !isIgnored(ig, f));
+  if (files.length > MAX_ARCH_FILES) {
+    throw new Error(
+      `architecture scan found ${files.length} TS files under ${root} (cap ${MAX_ARCH_FILES}). ` +
+        `Point this at an actual project root (--root / CODEINDEX_ROOT) or pass a narrower path.`,
+    );
+  }
 
   const byDir = new Map<string, string[]>();
   for (const f of files) {

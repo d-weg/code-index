@@ -38,8 +38,28 @@ export class RefactorRunner {
     private readonly opts: RunnerOptions = {},
   ) {}
 
+  /**
+   * Optional resolve cache. Only safe during a READ-ONLY window (e.g. attributing
+   * diagnostics to ops): nodes are forgotten/repathed by edits, so the cache must
+   * be cleared before any further `apply`. Off by default.
+   */
+  private resolveCache: Map<string, Node> | null = null;
+  beginResolveCache(): void {
+    this.resolveCache = new Map();
+  }
+  endResolveCache(): void {
+    this.resolveCache = null;
+  }
+  private cacheNode(id: string, n: Node): Node {
+    this.resolveCache?.set(id, n);
+    return n;
+  }
+
   /** `path#prefix_name[~index]` → live Node. Shares the manifest id grammar. */
   resolve(nodeId: string): Node {
+    const cached = this.resolveCache?.get(nodeId);
+    if (cached) return cached;
+
     const parsed = parseNodeId(nodeId);
     if (!parsed) throw new AnchorError(nodeId);
 
@@ -57,16 +77,30 @@ export class RefactorRunner {
     });
 
     if (matches.length === 0) throw new AnchorError(nodeId);
-    if (matches[parsed.index]) return matches[parsed.index];
-    if (matches.length === 1 && parsed.index === 0) return matches[0];
+    if (matches[parsed.index]) return this.cacheNode(nodeId, matches[parsed.index]);
+    if (matches.length === 1 && parsed.index === 0) return this.cacheNode(nodeId, matches[0]);
     throw new AnchorError(`${nodeId} (ambiguous: ${matches.length} matches)`);
   }
 
-  private findSourceFile(path: string): SourceFile | undefined {
-    return (
-      this.project.getSourceFile(path) ??
-      this.project.getSourceFiles().find((f) => f.getFilePath().endsWith(path))
-    );
+  /**
+   * Resolve a file by repo-relative or absolute path. Exact lookup first, then
+   * (for relative paths) joined against rootDir, then a path-BOUNDARY suffix match
+   * with an ambiguity guard — never a bare `endsWith`, which would silently pick
+   * the wrong `foo.ts` when several exist.
+   */
+  private findSourceFile(p: string): SourceFile | undefined {
+    const direct = this.project.getSourceFile(p);
+    if (direct) return direct;
+    if (this.opts.rootDir && !path.isAbsolute(p)) {
+      const byAbs = this.project.getSourceFile(path.join(this.opts.rootDir, p));
+      if (byAbs) return byAbs;
+    }
+    const needle = p.startsWith("/") ? p : "/" + p;
+    const matches = this.project.getSourceFiles().filter((f) => f.getFilePath().endsWith(needle));
+    if (matches.length === 1) return matches[0];
+    if (matches.length > 1)
+      throw new AnchorError(`${p} (ambiguous: ${matches.length} files match this path)`);
+    return undefined;
   }
 
   applySetBody(op: SetBodyOp): void {
@@ -292,7 +326,11 @@ export async function commit(
   let repairRounds = 0;
   let offending = newDiags();
   while (offending.length > 0 && repair && repairRounds < maxRepairRounds) {
+    // Attribution is read-only: cache resolves so we don't re-walk the AST for
+    // every (diagnostic × op) pair. Cleared before any patch op mutates the tree.
+    runner.beginResolveCache();
     const anchored = offending.map((d) => anchorDiagnostic(d, ops, runner));
+    runner.endResolveCache();
     const patchOps = await repair(anchored, repairRounds);
     if (patchOps.length === 0) break;
     try {

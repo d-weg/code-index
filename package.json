@@ -19,6 +19,7 @@
     "eval": "tsx scripts/eval.ts",
     "test": "tsx scripts/test-package-weight.ts",
     "test:edit": "tsx scripts/edit-selftest.ts",
+    "test:reindex": "tsx scripts/test-reindex.ts",
     "bench:edit": "tsx scripts/bench-edit.ts",
     "bench:e2e": "tsx scripts/bench-e2e.ts",
     "bench:feature": "tsx scripts/bench-feature.ts",

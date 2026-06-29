@@ -14,6 +14,26 @@ import { makeRetrieveContextHandler, RETRIEVE_CONTEXT_TOOL } from "./tool.js";
 import { commit, parseOps } from "./edit/index.js";
 import { indexSourceFile } from "./edit/nodeId.js";
 import { buildArchitecture, formatArchitecture } from "./folders.js";
+import { updateFiles } from "./indexer.js";
+import { indexExists } from "./store.js";
+import { loadConfig } from "./config.js";
+
+/**
+ * Keep the retrieval index fresh after a successful edit. Best-effort and
+ * non-fatal: skips silently if there's no index yet (an edit must never trigger a
+ * surprise full build), and a refresh failure never fails the edit.
+ */
+async function refreshIndex(root: string, changedFiles: string[]): Promise<string> {
+  if (changedFiles.length === 0) return "";
+  try {
+    const config = await loadConfig(root);
+    if (!(await indexExists(root, config))) return "";
+    await updateFiles(root, changedFiles);
+    return ` Index refreshed (${changedFiles.length} file(s)).`;
+  } catch (e) {
+    return ` (index refresh skipped: ${e instanceof Error ? e.message : e})`;
+  }
+}
 
 function resolveRoot(): string {
   const argv = process.argv.slice(2);
@@ -174,10 +194,12 @@ async function main() {
           rootDir: root, // resolve relative MOVE_FILE/CREATE_FILE/DELETE_FILE paths
         });
         if (res.ok) {
+          const refreshed = dryRun ? "" : await refreshIndex(root, res.changedFiles);
           return text(
             `Applied ${res.appliedOps} op(s)${dryRun ? " (dry run — nothing written)" : ""}. ` +
               `Changed ${res.changedFiles.length} file(s):\n` +
-              res.changedFiles.map((f) => path.relative(root, f)).join("\n"),
+              res.changedFiles.map((f) => path.relative(root, f)).join("\n") +
+              (refreshed ? `\n${refreshed.trim()}` : ""),
           );
         }
         return err(
