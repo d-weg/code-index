@@ -252,4 +252,55 @@ str_replace and grep/read baselines are model-generated, not authored. Remaining
 - All A/Bs count **edit payloads / context read**, not full-session API `usage`
   (reasoning + tool scaffolding). Those are similar across both arms, but a true
   end-to-end token count would need the API `usage` field from two real sessions.
+  → **Now provided** by the Agent A/B below (full-session `usage`, median of 3 real runs).
 - Quality numbers (embedder, retrieval) come from small labeled sets — directional.
+
+---
+
+## Agent A/B — full-session, with vs without codeindex (LIVE-AGENT, API `usage`)
+
+The end-to-end run the section above flagged as missing: full-session token counts straight from
+**Claude Code's own `usage`** (reasoning + tool scaffolding included), not modeled edit payloads.
+Same agent (Claude Code headless, **sonnet 4.6**), same tasks, with vs without codeindex's MCP
+tools; an objective pass/fail `check` per task; clean git + index reset between runs. Run on this
+repo (~600-symbol TS). **Median of 3 runs.** A third arm, **rust**, is the Rust rewrite
+(`codeindex-rs`) for comparison. (Harness lives in the `codeindex-rs` repo: `scripts/agent-bench`,
+which drives all three arms against a disposable clone.) `sec` = wall-clock for the whole run.
+
+| task | arm | in_tok | out_tok | turns | sec | ok |
+|---|---|--:|--:|--:|--:|:--:|
+| T1-rename | baseline | 165658 | 940 | 8 | 23 | 3/3 |
+|  | **ts** | **107015** | **604** | **4** | **19** | 3/3 |
+|  | rust | 102264 | 563 | 4 | 15 | 3/3 |
+| T2-move | baseline | 231593 | 1190 | 11 | 31 | 3/3 |
+|  | **ts** | **76504** | **389** | **3** | **12** | 3/3 |
+|  | rust | 75195 | 386 | 3 | 12 | 3/3 |
+| T3-locate-edit | baseline | 100928 | 384 | 4 | 13 | 3/3 |
+|  | ts | 130575 | 559 | 5 | 18 | 3/3 |
+|  | rust | 127121 | 549 | 5 | 14 | 3/3 |
+
+### Totals (median per task, summed)
+
+| arm | input tok | output tok | sec | vs baseline (in / out / time) | success |
+|---|--:|--:|--:|---|--:|
+| baseline | 498179 | 2514 | 67 | — | 9/9 |
+| **ts** | **314094** | **1552** | **49** | **−37% / −38% / −27%** | 9/9 |
+| rust | 304580 | 1498 | 41 | −39% / −40% / −38% | 9/9 |
+
+**Headlines:**
+- **An agent with codeindex spends ~37% fewer tokens and ~27% less wall-clock**, all 9/9 — the
+  whole-task effect, on top of the per-step savings modeled above.
+- **The win is structural edits**: T2-move 3 turns vs baseline's 11; T1-rename 4 vs 8. The
+  ts-morph type-check gate lets the agent do a cross-file rename/move in ONE call instead of
+  grepping and hand-editing every site.
+- **vs the Rust rewrite** (`codeindex-rs`): ~tied on tokens, the Rust port a bit faster on
+  wall-clock (native core + a warm ts-morph gate). Same idea, different engine.
+
+**Honest caveats:**
+- **T3-locate is deliberately neutral** (a trivial one-liner): baseline is marginally leaner
+  (4 turns vs 5) — the tool call adds a step when the find is easy. Keeping a task the tool does
+  *not* win is what makes the average credible; the gain is in structural edits.
+- **All 9/9 succeeded, so the gate's robustness value is NOT in these numbers** — a type-checked
+  edit is insurance against broken edits, and insurance doesn't pay out on the happy path.
+- 3 tasks, one single-package TS repo, sonnet 4.6, median of 3. The *shape* is robust; the
+  absolute deltas are this-repo/these-tasks.
